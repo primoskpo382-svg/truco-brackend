@@ -431,6 +431,7 @@
 
         function poblarSelectApuestas() {
             const select = document.getElementById('select-apuesta');
+            if (!select) return;
             select.innerHTML = '';
             
             // Opción de 0 fichas (Práctica / Gratis)
@@ -659,10 +660,10 @@
                 item.className = "bg-slate-800/80 hover:bg-slate-800 border border-slate-700/60 p-2.5 rounded-xl flex justify-between items-center transition shadow-sm";
                 item.innerHTML = `
                     <div class="text-left">
-                        <div class="text-xs font-black text-amber-300">Mesa #${s.id} <span class="text-emerald-400 ml-1">($${s.apuesta || 0})</span></div>
+                        <div class="text-xs font-black text-amber-300">Mesa #${s.id} <span class="text-emerald-400 ml-1">($${s.apuesta !== undefined ? s.apuesta : 0})</span></div>
                         <div class="text-[10px] text-emerald-400 font-bold">● Esperando rival</div>
                     </div>
-                    <button onclick="window.unirseADeterminadaSala(${s.id}, ${s.apuesta || 0})" class="bg-indigo-600 hover:bg-indigo-500 text-white font-extrabold text-xs py-1.5 px-3.5 rounded-lg transition cursor-pointer shadow">
+                    <button onclick="window.unirseADeterminadaSala(${s.id}, ${s.apuesta !== undefined ? s.apuesta : 0})" class="bg-indigo-600 hover:bg-indigo-500 text-white font-extrabold text-xs py-1.5 px-3.5 rounded-lg transition cursor-pointer shadow">
                         Unirse
                     </button>
                 `;
@@ -685,7 +686,7 @@
             if (!supabaseClient) return;
             const montoApuesta = Number(document.getElementById('select-apuesta').value);
 
-            if (saldoFichasActual < montoApuesta) {
+            if (montoApuesta > 0 && saldoFichasActual < montoApuesta) {
                 alert(`No tenés suficiente saldo. Necesitás ${montoApuesta} fichas para crear esta sala.`);
                 return;
             }
@@ -712,7 +713,7 @@
         };
 
         window.unirseADeterminadaSala = async function(idElegida, montoApuesta) {
-            if (saldoFichasActual < montoApuesta) {
+            if (montoApuesta > 0 && saldoFichasActual < montoApuesta) {
                 alert(`No tenés suficiente saldo. Necesitás ${montoApuesta} fichas para unirte a esta sala.`);
                 return;
             }
