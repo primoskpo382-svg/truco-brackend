@@ -17,17 +17,13 @@ app.get('/', (req, res) => {
 
 const crearPreferenciaHandler = async (req, res) => {
     try {
-        console.log('Body recibido:', req.body);
+        console.log("=== DATOS RECIBIDOS DEL FRONTEND ===", req.body);
         
-        // Aceptamos diferentes nombres de variables (precio, price, monto) y ponemos un valor por defecto si llega vacío
-        const precioRaw = req.body.precio || req.body.price || req.body.monto || 1000;
+        // Buscamos el precio en cualquier variante posible que envíe el cliente
+        const precioRaw = req.body.precio || req.body.price || req.body.monto || req.body.valor || 1000;
         const precio = Number(precioRaw);
-        const cantidad = Number(req.body.cantidad || 1);
-        const usuarioId = req.body.usuarioId || 'demo_user';
-
-        if (isNaN(precio) || precio <= 0) {
-            return res.status(400).json({ error: 'Precio inválido' });
-        }
+        const cantidad = Number(req.body.cantidad || req.body.fichas || 1);
+        const usuarioId = req.body.usuarioId || req.body.user || 'demo_user';
 
         const preference = new Preference(client);
 
@@ -36,8 +32,8 @@ const crearPreferenciaHandler = async (req, res) => {
                 items: [
                     {
                         title: `${cantidad} Fichas de Truco Argentino`,
-                        quantity: cantidad,
-                        unit_price: precio,
+                        quantity: cantidad > 0 ? cantidad : 1,
+                        unit_price: precio > 0 ? precio : 1000,
                         currency_id: 'ARS'
                     }
                 ],
@@ -47,7 +43,7 @@ const crearPreferenciaHandler = async (req, res) => {
                     pending: 'https://app.netlify.com'
                 },
                 auto_return: 'approved',
-                external_reference: usuarioId
+                external_reference: String(usuarioId)
             }
         });
 
@@ -65,18 +61,8 @@ app.post('/api/crear-preferencia', crearPreferenciaHandler);
 const solicitarRetiroHandler = async (req, res) => {
     try {
         const { usuarioId, fichasARetirar, aliasCbu } = req.body;
-
-        if (!fichasARetirar || !aliasCbu) {
-            return res.status(400).json({ error: 'Faltan datos para procesar el retiro' });
-        }
-
         console.log(`Solicitud de retiro de ${fichasARetirar} fichas para usuario ${usuarioId} a la cuenta/alias: ${aliasCbu}`);
-
-        res.json({ 
-            exito: true, 
-            mensaje: '¡Solicitud de retiro enviada con éxito! Se procesará en las próximas 24 horas.' 
-        });
-
+        res.json({ exito: true, mensaje: '¡Solicitud de retiro enviada con éxito!' });
     } catch (error) {
         console.error('Error al solicitar retiro:', error);
         res.status(500).json({ error: 'Error al procesar el retiro' });
