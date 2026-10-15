@@ -87,7 +87,7 @@
             <h2 id="fin-titulo" class="text-2xl font-black text-amber-400 uppercase tracking-wider">¡Partida Finalizada!</h2>
             <p id="fin-mensaje" class="text-sm text-slate-300 font-semibold"></p>
             <div class="bg-slate-950 p-3 rounded-2xl border border-slate-800">
-                <div class="text-xs text-slate-400 uppercase font-bold">Ganancia Neta (Comisión 2% cobrada)</div>
+                <div class="text-xs text-slate-400 uppercase font-bold">Resultado de Fichas</div>
                 <div id="fin-ganancia" class="text-2xl font-black text-emerald-400 mt-1">+0 Fichas</div>
             </div>
             <button onclick="cerrarFinPartida()" class="w-full bg-amber-500 hover:bg-amber-400 text-slate-950 font-black py-3 rounded-xl transition cursor-pointer">
@@ -433,6 +433,12 @@
             const select = document.getElementById('select-apuesta');
             select.innerHTML = '';
             
+            // Opción de 0 fichas (Práctica / Gratis)
+            const optGratis = document.createElement('option');
+            optGratis.value = 0;
+            optGratis.innerText = '0 Fichas (Modo Práctica Gratis)';
+            select.appendChild(optGratis);
+
             for (let v = 100; v <= 2000; v += 100) {
                 const opt = document.createElement('option');
                 opt.value = v;
@@ -653,10 +659,10 @@
                 item.className = "bg-slate-800/80 hover:bg-slate-800 border border-slate-700/60 p-2.5 rounded-xl flex justify-between items-center transition shadow-sm";
                 item.innerHTML = `
                     <div class="text-left">
-                        <div class="text-xs font-black text-amber-300">Mesa #${s.id} <span class="text-emerald-400 ml-1">($${s.apuesta || 100})</span></div>
+                        <div class="text-xs font-black text-amber-300">Mesa #${s.id} <span class="text-emerald-400 ml-1">($${s.apuesta || 0})</span></div>
                         <div class="text-[10px] text-emerald-400 font-bold">● Esperando rival</div>
                     </div>
-                    <button onclick="window.unirseADeterminadaSala(${s.id}, ${s.apuesta || 100})" class="bg-indigo-600 hover:bg-indigo-500 text-white font-extrabold text-xs py-1.5 px-3.5 rounded-lg transition cursor-pointer shadow">
+                    <button onclick="window.unirseADeterminadaSala(${s.id}, ${s.apuesta || 0})" class="bg-indigo-600 hover:bg-indigo-500 text-white font-extrabold text-xs py-1.5 px-3.5 rounded-lg transition cursor-pointer shadow">
                         Unirse
                     </button>
                 `;
@@ -795,14 +801,18 @@
 
         function procesarAbandonoRival() {
             if (!salaId) return;
-            const pozoTotal = apuestaSalaActual * 2;
-            const gananciaNeta = pozoTotal * 0.98;
-
-            actualizarSaldoBD(saldoFichasActual + (gananciaNeta - apuestaSalaActual));
+            
+            if (apuestaSalaActual > 0) {
+                const pozoTotal = apuestaSalaActual * 2;
+                const gananciaNeta = pozoTotal * 0.98;
+                actualizarSaldoBD(saldoFichasActual + (gananciaNeta - apuestaSalaActual));
+                document.getElementById('fin-ganancia').innerText = `+${Math.floor(gananciaNeta - apuestaSalaActual)} Fichas`;
+            } else {
+                document.getElementById('fin-ganancia').innerText = `0 Fichas (Modo Práctica)`;
+            }
 
             document.getElementById('fin-titulo').innerText = "¡Victoria por Abandono!";
-            document.getElementById('fin-mensaje').innerText = "Tu rival abandonó la partida. ¡Te quedás con las fichas!";
-            document.getElementById('fin-ganancia').innerText = `+${Math.floor(gananciaNeta - apuestaSalaActual)} Fichas`;
+            document.getElementById('fin-mensaje').innerText = "Tu rival abandonó la partida.";
             document.getElementById('modal-fin-partida').classList.remove('hidden');
 
             limpiarEstadoJuego();
@@ -924,19 +934,31 @@
         }
 
         function evaluarFinDePartida(ganeYo) {
-            const pozoTotal = apuestaSalaActual * 2;
-            const gananciaNetoPura = Math.floor(pozoTotal * 0.98);
+            if (apuestaSalaActual > 0) {
+                const pozoTotal = apuestaSalaActual * 2;
+                const gananciaNetoPura = Math.floor(pozoTotal * 0.98);
 
-            if (ganeYo) {
-                actualizarSaldoBD(saldoFichasActual + (gananciaNetoPura - apuestaSalaActual));
-                document.getElementById('fin-titulo').innerText = "¡Ganaste la Partida!";
-                document.getElementById('fin-mensaje').innerText = "Felicitaciones, alcanzaste el puntaje máximo.";
-                document.getElementById('fin-ganancia').innerText = `+${gananciaNetoPura - apuestaSalaActual} Fichas`;
+                if (ganeYo) {
+                    actualizarSaldoBD(saldoFichasActual + (gananciaNetoPura - apuestaSalaActual));
+                    document.getElementById('fin-titulo').innerText = "¡Ganaste la Partida!";
+                    document.getElementById('fin-mensaje').innerText = "Felicitaciones, alcanzaste el puntaje máximo.";
+                    document.getElementById('fin-ganancia').innerText = `+${gananciaNetoPura - apuestaSalaActual} Fichas`;
+                } else {
+                    actualizarSaldoBD(saldoFichasActual - apuestaSalaActual);
+                    document.getElementById('fin-titulo').innerText = "Perdiste la Partida";
+                    document.getElementById('fin-mensaje').innerText = "Tu rival alcanzó el puntaje máximo.";
+                    document.getElementById('fin-ganancia').innerText = `-${apuestaSalaActual} Fichas`;
+                }
             } else {
-                actualizarSaldoBD(saldoFichasActual - apuestaSalaActual);
-                document.getElementById('fin-titulo').innerText = "Perdiste la Partida";
-                document.getElementById('fin-mensaje').innerText = "Tu rival alcanzó el puntaje máximo.";
-                document.getElementById('fin-ganancia').innerText = `-${apuestaSalaActual} Fichas`;
+                if (ganeYo) {
+                    document.getElementById('fin-titulo').innerText = "¡Ganaste la Partida (Gratis)!";
+                    document.getElementById('fin-mensaje').innerText = "Partida de práctica finalizada con éxito.";
+                    document.getElementById('fin-ganancia').innerText = `0 Fichas (Modo Práctica)`;
+                } else {
+                    document.getElementById('fin-titulo').innerText = "Partida Finalizada (Gratis)";
+                    document.getElementById('fin-mensaje').innerText = "Tu rival ganó la partida de práctica.";
+                    document.getElementById('fin-ganancia').innerText = `0 Fichas (Modo Práctica)`;
+                }
             }
 
             document.getElementById('modal-fin-partida').classList.remove('hidden');
