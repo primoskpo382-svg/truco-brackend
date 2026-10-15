@@ -4,26 +4,28 @@ const { MercadoPagoConfig, Preference } = require('mercadopago');
 
 const app = express();
 
-// Habilitar CORS para permitir solicitudes desde cualquier frontend (Netlify, etc.)
 app.use(cors({ origin: '*' }));
 app.use(express.json());
 
-// Configurar Mercado Pago utilizando la variable de entorno de Render (MP_ACCESS_TOKEN)
 const client = new MercadoPagoConfig({ 
     accessToken: process.env.MP_ACCESS_TOKEN || 'TU_ACCESS_TOKEN_DE_PRUEBA_LOCAL' 
 });
 
-// Ruta raíz de prueba para verificar que el servidor está online
 app.get('/', (req, res) => {
     res.send('¡Servidor Backend de Truco Argentino funcionando con éxito!');
 });
 
-// Función controladora para crear preferencia
 const crearPreferenciaHandler = async (req, res) => {
     try {
-        const { precio, cantidad, usuarioId } = req.body;
+        console.log('Body recibido:', req.body);
+        
+        // Aceptamos diferentes nombres de variables (precio, price, monto) y ponemos un valor por defecto si llega vacío
+        const precioRaw = req.body.precio || req.body.price || req.body.monto || 1000;
+        const precio = Number(precioRaw);
+        const cantidad = Number(req.body.cantidad || 1);
+        const usuarioId = req.body.usuarioId || 'demo_user';
 
-        if (!precio || precio <= 0) {
+        if (isNaN(precio) || precio <= 0) {
             return res.status(400).json({ error: 'Precio inválido' });
         }
 
@@ -33,9 +35,9 @@ const crearPreferenciaHandler = async (req, res) => {
             body: {
                 items: [
                     {
-                        title: `${cantidad || 1} Fichas de Truco Argentino`,
-                        quantity: Number(cantidad || 1),
-                        unit_price: Number(precio),
+                        title: `${cantidad} Fichas de Truco Argentino`,
+                        quantity: cantidad,
+                        unit_price: precio,
                         currency_id: 'ARS'
                     }
                 ],
@@ -45,11 +47,10 @@ const crearPreferenciaHandler = async (req, res) => {
                     pending: 'https://app.netlify.com'
                 },
                 auto_return: 'approved',
-                external_reference: usuarioId || 'demo_user'
+                external_reference: usuarioId
             }
         });
 
-        // Retornamos el link de pago (init_point) hacia el cliente
         res.json({ init_point: resultado.init_point });
 
     } catch (error) {
@@ -58,11 +59,9 @@ const crearPreferenciaHandler = async (req, res) => {
     }
 };
 
-// Soportar ambas rutas (con y sin /api) para evitar errores 404
 app.post('/crear-preferencia', crearPreferenciaHandler);
 app.post('/api/crear-preferencia', crearPreferenciaHandler);
 
-// Endpoint para procesar solicitudes de retiro de fichas
 const solicitarRetiroHandler = async (req, res) => {
     try {
         const { usuarioId, fichasARetirar, aliasCbu } = req.body;
@@ -87,7 +86,6 @@ const solicitarRetiroHandler = async (req, res) => {
 app.post('/solicitar-retiro', solicitarRetiroHandler);
 app.post('/api/solicitar-retiro', solicitarRetiroHandler);
 
-// Render asigna un puerto automático mediante process.env.PORT
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
     console.log(`Servidor de Truco corriendo en el puerto ${PORT}`);
