@@ -10,7 +10,7 @@ app.use(express.json());
 
 // Configurar Mercado Pago utilizando la variable de entorno de Render (MP_ACCESS_TOKEN)
 const client = new MercadoPagoConfig({ 
-    accessKey: process.env.MP_ACCESS_TOKEN || 'TU_ACCESS_TOKEN_DE_PRUEBA_LOCAL' 
+    accessToken: process.env.MP_ACCESS_TOKEN || 'TU_ACCESS_TOKEN_DE_PRUEBA_LOCAL' 
 });
 
 // Ruta raíz de prueba para verificar que el servidor está online
@@ -18,8 +18,8 @@ app.get('/', (req, res) => {
     res.send('¡Servidor Backend de Truco Argentino funcionando con éxito!');
 });
 
-// Endpoint para crear la preferencia de pago para comprar fichas
-app.post('/api/crear-preferencia', async (req, res) => {
+// Función controladora para crear preferencia
+const crearPreferenciaHandler = async (req, res) => {
     try {
         const { precio, cantidad, usuarioId } = req.body;
 
@@ -40,7 +40,7 @@ app.post('/api/crear-preferencia', async (req, res) => {
                     }
                 ],
                 back_urls: {
-                    success: 'https://app.netlify.com', // O la URL definitiva de tu web en Netlify
+                    success: 'https://app.netlify.com',
                     failure: 'https://app.netlify.com',
                     pending: 'https://app.netlify.com'
                 },
@@ -56,10 +56,14 @@ app.post('/api/crear-preferencia', async (req, res) => {
         console.error('Error al crear preferencia de Mercado Pago:', error);
         res.status(500).json({ error: error.message || 'Error interno del servidor' });
     }
-});
+};
+
+// Soportar ambas rutas (con y sin /api) para evitar errores 404
+app.post('/crear-preferencia', crearPreferenciaHandler);
+app.post('/api/crear-preferencia', crearPreferenciaHandler);
 
 // Endpoint para procesar solicitudes de retiro de fichas
-app.post('/api/solicitar-retiro', async (req, res) => {
+const solicitarRetiroHandler = async (req, res) => {
     try {
         const { usuarioId, fichasARetirar, aliasCbu } = req.body;
 
@@ -67,7 +71,6 @@ app.post('/api/solicitar-retiro', async (req, res) => {
             return res.status(400).json({ error: 'Faltan datos para procesar el retiro' });
         }
 
-        // Aquí puedes registrar la solicitud en tu base de datos o lógica interna
         console.log(`Solicitud de retiro de ${fichasARetirar} fichas para usuario ${usuarioId} a la cuenta/alias: ${aliasCbu}`);
 
         res.json({ 
@@ -79,7 +82,10 @@ app.post('/api/solicitar-retiro', async (req, res) => {
         console.error('Error al solicitar retiro:', error);
         res.status(500).json({ error: 'Error al procesar el retiro' });
     }
-});
+};
+
+app.post('/solicitar-retiro', solicitarRetiroHandler);
+app.post('/api/solicitar-retiro', solicitarRetiroHandler);
 
 // Render asigna un puerto automático mediante process.env.PORT
 const PORT = process.env.PORT || 3000;
