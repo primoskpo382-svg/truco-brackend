@@ -19,10 +19,15 @@ const crearPreferenciaHandler = async (req, res) => {
     try {
         console.log("=== DATOS RECIBIDOS DEL FRONTEND ===", req.body);
         
-        // Buscamos el precio en cualquier variante posible que envíe el cliente
-        const precioRaw = req.body.precio || req.body.price || req.body.monto || req.body.valor || 1000;
-        const precio = Number(precioRaw);
+        // Cantidad de fichas que el usuario quiere comprar (por defecto 1)
         const cantidad = Number(req.body.cantidad || req.body.fichas || 1);
+        
+        // Precio unitario de cada ficha (por ejemplo, $1000 cada una, o tomamos el que envíe el frontend)
+        const precioUnitario = Number(req.body.precioUnitario || req.body.precio || 1000);
+        
+        // Calculamos el precio total según la cantidad
+        const precioTotal = precioUnitario * cantidad;
+
         const usuarioId = req.body.usuarioId || req.body.user || 'demo_user';
 
         const preference = new Preference(client);
@@ -31,9 +36,9 @@ const crearPreferenciaHandler = async (req, res) => {
             body: {
                 items: [
                     {
-                        title: `${cantidad} Fichas de Truco Argentino`,
-                        quantity: cantidad > 0 ? cantidad : 1,
-                        unit_price: precio > 0 ? precio : 1000,
+                        title: `${cantidad} Ficha(s) de Truco Argentino`,
+                        quantity: 1, // Mandamos quantity 1 a Mercado Pago para que cobre el total calculado y evite desfasajes
+                        unit_price: precioTotal,
                         currency_id: 'ARS'
                     }
                 ],
