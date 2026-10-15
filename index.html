@@ -241,7 +241,7 @@
             <p class="text-xs text-slate-400 mb-4">1 Ficha = $1 ARS</p>
             <div class="mb-4 text-left">
                 <label class="text-xs text-slate-300 font-bold">Cantidad de Fichas</label>
-                <input type="number" id="cantidadComprar" min="100" value="500" class="w-full mt-1 p-2.5 bg-slate-950 border border-slate-700 rounded-xl text-white text-sm">
+                <input type="number" id="cantidadComprar" min="1" value="500" class="w-full mt-1 p-2.5 bg-slate-950 border border-slate-700 rounded-xl text-white text-sm">
             </div>
             <button onclick="comprarFichasMP()" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-2.5 rounded-xl text-sm transition cursor-pointer mb-2">
                 Pagar con Mercado Pago
@@ -522,14 +522,18 @@
 
             try {
                 const inputCantidad = document.getElementById('cantidadComprar');
-                const cantidad = inputCantidad ? inputCantidad.value : 500;
+                const cantidad = inputCantidad ? Number(inputCantidad.value) : 1;
 
                 const response = await fetch(`${API_URL}/crear-preferencia`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify({ cantidad: Number(cantidad) })
+                    body: JSON.stringify({ 
+                        cantidad: cantidad,
+                        precio: cantidad,
+                        usuarioId: usuarioId || 'demo_user'
+                    })
                 });
 
                 const data = await response.json();
@@ -540,7 +544,7 @@
                     console.error("Respuesta del servidor:", data);
                     if (msg) {
                         msg.className = 'text-xs mt-2 text-rose-400';
-                        msg.innerText = "Error al generar el pago.";
+                        msg.innerText = data.error || "Error al generar el pago.";
                     }
                 }
             } catch (error) {
@@ -979,7 +983,7 @@
             const m = estadoJuego[`mesaR${numRonda}`];
             if (!m.J1 || !m.J2) return null;
             if (m.J1.poder > m.J2.poder) return 'J1';
-            if (m.J2.poder > m.J1.poder) return 'J2';
+            if (m.J2.poder > m.J2.poder) return 'J2';
             return 'PARDA';
         }
 
